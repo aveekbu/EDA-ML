@@ -80,7 +80,7 @@ cancer = cancer.drop('Level', axis=1)
 cancer = pd.concat([cancer,encoded_level_df], axis=1)
 cancer.columns
 
-# Rename the column 'Level' wit it's original name
+# Rename the column 'Level' with it's original name
 
 cancer.columns=[                     'Age',                   'Gender',
                   'Air Pollution',              'Alcohol use',
@@ -119,6 +119,34 @@ sns.set_context('paper', font_scale=0.8)
 cancer_mx = cancer.corr()
 sns.heatmap(cancer_mx, annot=True, cmap='Blues')
 
+# prompt: create another dataset with Fatigue, Chest Pain, Coughing of Blood, Passive Smoker, Smoking, Obesity, Balanced Diet, Chronic Lung Disease, Genetic Risk, Alcohol use, Air Pollution
+
+# Select the specified columns to create a new dataset
+selected_columns = ['Air Pollution', 'Alcohol use', 'Genetic Risk', 'chronic Lung Disease', 'Balanced Diet',
+                    'Obesity', 'Smoking', 'Passive Smoker', 'Coughing of Blood', 'Chest Pain', 'Fatigue', 'Level']
+
+# Check if the selected columns exist in the original DataFrame
+existing_columns = [col for col in selected_columns if col in cancer.columns]
+
+if len(existing_columns) == len(selected_columns):
+    new_dataset = cancer[existing_columns].copy()
+    print("New dataset created with the specified columns:")
+    print(new_dataset.head())
+else:
+    print("Warning: Some specified columns were not found in the original DataFrame.")
+    print("Columns found:", existing_columns)
+    print("Columns not found:", list(set(selected_columns) - set(existing_columns)))
+    # Create a dataset with the existing columns if some were not found
+    if existing_columns:
+        new_dataset = cancer[existing_columns].copy()
+        print("New dataset created with the existing specified columns:")
+        print(new_dataset.head())
+    else:
+        print("No specified columns were found in the original DataFrame.")
+        new_dataset = pd.DataFrame() # Create an empty DataFrame
+
+new_dataset.head()
+
 # Generating a scatter plot with a regression line using the seaborn library. It
 # visualizes the relationship between 'Smoking' and 'Chest Pain', with different
 # colors representing 'Age'.
@@ -132,13 +160,7 @@ sns.lmplot(x='Smoking', y='Chest Pain', hue='Age', data=cancer, scatter_kws={'s'
 
 sns.lmplot(x='Smoking', y='Chest Pain', hue='Gender', data=cancer, scatter_kws={'s':100, 'linewidths': 0.5, 'edgecolor':'w'})
 
-# This code generates a grid of plots. Each plot within the grid shows the
-# relationship between 'chronic Lung Disease' and 'Shortness of Breath'. The
-# grid is structured such that plots in the same column represent the same
-# gender, and plots in the same row represent the same smoking status. This
-# allows for a visual comparison of the relationship between 'chronic Lung
-# Disease' and 'Shortness of Breath' across different combinations of gender and
-# smoking habits.
+"""The code bellow generates a grid of plots. Each plot within the grid shows the relationship between 'chronic Lung Disease' and 'Shortness of Breath'. The grid is structured such that plots in the same column represent the same gender, and plots in the same row represent the same smoking status. This allows for a visual comparison of the relationship between 'chronic Lung Disease' and 'Shortness of Breath' across different combinations of gender and smoking habits."""
 
 sns.lmplot(x='chronic Lung Disease', y='Shortness of Breath', col='Gender', row='Smoking', data=cancer, height=8, aspect=0.6)
 
@@ -146,12 +168,22 @@ sns.lmplot(x='chronic Lung Disease', y='Shortness of Breath', col='Gender', row=
 
 #Dividing Data into featurs and target
 
-x = cancer.iloc[:, :-1]
-y = cancer.iloc[:, -1]
+#x = cancer.iloc[:, :-1]
+#y = cancer.iloc[:, -1]
+
+#Dividing Data into featurs and target on new_dataset
+
+x = new_dataset.iloc[:, :-1]
+y = new_dataset.iloc[:, -1]
 
 #Splitting the data for training and testing
 
-x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.2)
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.25, random_state=42, stratify=y)
+# stratify=y ensures that the proportion of classes in y_train and y_test is the
+# same as in the original dataset.
+
+print(f"\nTraining set size: {len(x_train)} samples")
+print(f"Testing set size: {len(x_test)} samples")
 
 """**Logistic Regression**"""
 
@@ -163,18 +195,18 @@ model_lr.fit(x_train, y_train)
 
 LogisticRegression()
 
-predict = model_lr.predict(x_test)
-accuracy = accuracy_score(y_test, predict)
-print(f"Accuracy of Logistic Regression Model : {accuracy}")
+predict_lr = model_lr.predict(x_test)
+accuracy_lr = accuracy_score(y_test, predict_lr)
+print(f"Accuracy of Logistic Regression Model : {accuracy_lr}")
 
-cm = confusion_matrix(predict, y_test)
-cm
+cm_lr = confusion_matrix(predict_lr, y_test)
+cm_lr
 
 # Classification Report
 
-print(classification_report(y_test, predict))
+print(classification_report(y_test, predict_lr))
 
-sns.heatmap(cm, annot=True, cmap='Blues')
+sns.heatmap(cm_lr, annot=True, cmap='Blues')
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
@@ -191,18 +223,18 @@ model_svm.fit(x_train, y_train)
 
 SVC(C=1, gamma=0.01)
 
-predict = model_svm.predict(x_test)
-accuracy = accuracy_score(predict, y_test)
-print(f"Accuracy of Support Vector Machine Model : {accuracy}")
+predict_svm = model_svm.predict(x_test)
+accuracy_svm = accuracy_score(predict_svm, y_test)
+print(f"Accuracy of Support Vector Machine Model : {accuracy_svm}")
 
-cm = confusion_matrix(predict, y_test)
-cm
+cm_svm = confusion_matrix(predict_svm, y_test)
+cm_svm
 
 # Classification Report
 
-print(classification_report(y_test, predict))
+print(classification_report(y_test, predict_svm))
 
-sns.heatmap(cm, annot=True, cmap='Blues')
+sns.heatmap(cm_svm, annot=True, cmap='Blues')
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
@@ -222,26 +254,26 @@ dt_classifier.fit(x_train, y_train)
 print("\nDecision Tree Classifier trained successfully!")
 
 # Make predictions on the test set
-y_pred = dt_classifier.predict(x_test)
+y_pred_dt = dt_classifier.predict(x_test)
 
 # Calculate Accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print(f"\nAccuracy of the Decision Tree Classifier: {accuracy:.4f}")
+accuracy_dt = accuracy_score(y_test, y_pred_dt)
+print(f"\nAccuracy of the Decision Tree Classifier: {accuracy_dt:.4f}")
 
 # Display Classification Report
 # This shows precision, recall, f1-score for each class
 print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=encoder.classes_))
+print(classification_report(y_test, y_pred_dt, target_names=encoder.classes_))
 
 # Display Confusion Matrix
 # Helps to see where the model made mistakes (e.g., predicted Medium when it was High)
-cm = confusion_matrix(y_test, y_pred)
+cm_dt = confusion_matrix(y_test, y_pred_dt)
 print("\nConfusion Matrix:")
-print(cm)
+print(cm_dt)
 
 # Visualize Confusion Matrix using Seaborn
 plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+sns.heatmap(cm_dt, annot=True, fmt='d', cmap='Blues',
             xticklabels=encoder.classes_, yticklabels=encoder.classes_)
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
@@ -297,26 +329,26 @@ print("\nRandom Forest Classifier trained successfully!")
 # --- Evaluate the Model ---
 
 # Make predictions on the test set
-y_pred = rf_classifier.predict(x_test)
+y_pred_rf = rf_classifier.predict(x_test)
 
 # Calculate Accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print(f"\nAccuracy of the Random Forest Classifier: {accuracy:.4f}")
+accuracy_rf = accuracy_score(y_test, y_pred_rf)
+print(f"\nAccuracy of the Random Forest Classifier: {accuracy_rf:.4f}")
 
 # Display Classification Report
 # This shows precision, recall, f1-score for each class
 print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=encoder.classes_))
+print(classification_report(y_test, y_pred_rf, target_names=encoder.classes_))
 
 # Display Confusion Matrix
 # Helps to see where the model made mistakes (e.g., predicted Medium when it was High)
-cm = confusion_matrix(y_test, y_pred)
+cm_rf = confusion_matrix(y_test, y_pred_rf)
 print("\nConfusion Matrix:")
-print(cm)
+print(cm_rf)
 
 #Visualize Confusion Matrix using Seaborn
 plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+sns.heatmap(cm_rf, annot=True, fmt='d', cmap='Blues',
             xticklabels=encoder.classes_, yticklabels=encoder.classes_)
 plt.title('Confusion Matrix')
 plt.xlabel('Predicted Label')
@@ -356,43 +388,44 @@ X_train_scaled = scaler.fit_transform(x_train)
 X_test_scaled = scaler.transform(x_test)
 
 print("\nFeatures scaled successfully using StandardScaler.")
-print("First 5 rows of scaled training features (X_train_scaled):")
-print(X_train_scaled[:5])
+print("First 10 rows of scaled training features (X_train_scaled):")
+print(X_train_scaled[:10])
 
 # --- Implement and Train the K-Nearest Neighbors (KNN) Model ---
 # Initialize the KNN Classifier
 # The 'n_neighbors' parameter (k) is critical. A common starting point is 5.
-# You can experiment with different values of k.
-knn_classifier = KNeighborsClassifier(n_neighbors=5)
+# Eexperimenting with different values of k.
+knn_classifier = KNeighborsClassifier(n_neighbors=7, weights="distance", metric='minkowski', p=2)
 
 # Train the model
 knn_classifier.fit(X_train_scaled, y_train) # Train on scaled data
+#knn_classifier.fit(x_train, y_train) # Train on new_dataset non scaled data
 
 print(f"\nK-Nearest Neighbors Classifier trained successfully with n_neighbors = {knn_classifier.n_neighbors}!")
 
 # --- Evaluate the Model ---
 
 # Make predictions on the scaled test set
-y_pred = knn_classifier.predict(X_test_scaled) # Predict on scaled data
+y_pred_knn = knn_classifier.predict(X_test_scaled) # Predict on scaled data
 
 # Calculate Accuracy
-accuracy = accuracy_score(y_test, y_pred)
-print(f"\nAccuracy of the KNN Classifier: {accuracy:.4f}")
+accuracy_knn = accuracy_score(y_test, y_pred_knn)
+print(f"\nAccuracy of the KNN Classifier: {accuracy_knn:.4f}")
 
 # Display Classification Report
 # This shows precision, recall, f1-score for each class
 print("\nClassification Report:")
-print(classification_report(y_test, y_pred, target_names=encoder.classes_))
+print(classification_report(y_test, y_pred_knn, target_names=encoder.classes_))
 
 # Display Confusion Matrix
 # Helps to see where the model made mistakes (e.g., predicted Medium when it was High)
-cm = confusion_matrix(y_test, y_pred)
+cm_knn = confusion_matrix(y_test, y_pred_knn)
 print("\nConfusion Matrix:")
-print(cm)
+print(cm_knn)
 
 # Visualize Confusion Matrix using Seaborn
 plt.figure(figsize=(8, 6))
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+sns.heatmap(cm_knn, annot=True, fmt='d', cmap='Blues',
             xticklabels=encoder.classes_, yticklabels=encoder.classes_)
 plt.title('Confusion Matrix for KNN')
 plt.xlabel('Predicted Label')
